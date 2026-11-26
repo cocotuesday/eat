@@ -1,0 +1,474 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#285f9e">
+  <title>Weekly Dinner Plan</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1d3048;
+      --muted: #62748b;
+      --paper: #ffffff;
+      --background: #eef4fc;
+      --line: #d5e1f0;
+      --green: #285f9e;
+      --green-pale: #e8f1fc;
+      --shadow: 0 16px 40px #1b3e6612;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--background);
+      color: var(--ink);
+      font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+    }
+    button, select { font: inherit; }
+    button { cursor: pointer; }
+    .wrap { width: min(1240px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 56px; }
+    .eyebrow { color: var(--green); font-size: 12px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { margin: 5px 0 7px; font-size: clamp(30px, 5vw, 44px); letter-spacing: -.045em; }
+    .subtitle { margin: 0; color: var(--muted); font-size: 15px; }
+    .weekbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 28px 0 16px; }
+    .week-title { margin: 0; font-size: 20px; }
+    .week-actions { display: flex; gap: 8px; }
+    .button { min-height: 40px; padding: 8px 13px; border: 1px solid var(--line); border-radius: 11px; background: var(--paper); color: var(--ink); font-weight: 750; }
+    .button:hover { border-color: #90afd2; }
+    .button.arrow { min-width: 42px; font-size: 20px; line-height: 1; }
+    .panel { padding: 18px; border: 1px solid var(--line); border-radius: 20px; background: var(--paper); box-shadow: var(--shadow); }
+    .week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; }
+    .day-card { min-width: 0; min-height: 188px; padding: 13px 11px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+    .day-name { display: block; margin-bottom: 4px; color: var(--green); font-size: 13px; font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
+    .day-date { display: block; min-height: 20px; margin-bottom: 17px; color: var(--muted); font-size: 13px; }
+    .day-card label { display: block; margin-bottom: 7px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+    .day-card select { width: 100%; min-height: 44px; padding: 9px 28px 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #f8fbff; color: var(--ink); font-size: 13px; }
+    .day-card select:focus, .button:focus-visible { outline: 3px solid #8eb5e3; outline-offset: 2px; }
+    .picked { margin: 12px 1px 0; padding: 10px; border-radius: 10px; background: var(--green-pale); color: var(--ink); font-size: 12px; line-height: 1.45; overflow-wrap: anywhere; }
+    .picked[hidden] { display: none; }
+    .picked strong { display: block; margin-bottom: 5px; color: var(--green); font-size: 13px; }
+    .picked ul { margin: 0; padding-left: 17px; }
+    .picked .directions { margin-top: 7px; color: var(--muted); }
+    .bottom-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; }
+    .progress, .saved { margin: 0; color: var(--muted); font-size: 13px; }
+    .progress strong { color: var(--green); }
+    .saved { text-align: right; }
+    .button.primary { border-color: var(--green); background: var(--green); color: #fff; }
+    .button.primary:hover { background: #1f4d83; }
+    .shopping-panel { margin-top: 18px; }
+    .shopping-panel[hidden] { display: none; }
+    .shopping-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .shopping-heading h2 { margin: 0; font-size: 21px; }
+    .shopping-heading p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .shopping-controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+    .shopping-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .shopping-item { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px 14px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .shopping-item-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .shopping-item-name { font-weight: 750; }
+    .delete-item { flex: 0 0 auto; border: 0; background: transparent; color: #a13e4a; font-size: 12px; font-weight: 800; text-decoration: underline; }
+    .shopping-item-amount, .shopping-item-use { color: var(--muted); font-size: 12px; }
+    .shopping-item-use { grid-column: 1; }
+    .shopping-item-price { grid-column: 2; grid-row: 1 / span 3; align-self: center; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+    .shopping-item-price small { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+    .shopping-total { display: flex; justify-content: space-between; margin-top: 17px; font-size: 20px; font-weight: 850; }
+    .add-item-form { display: grid; grid-template-columns: minmax(180px,1fr) 150px auto auto; align-items: end; gap: 9px; margin-top: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: #f8fbff; }
+    .add-item-field { display: grid; gap: 5px; }
+    .add-item-field label { color: var(--muted); font-size: 12px; font-weight: 800; }
+    .add-item-field input { width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); font: inherit; }
+    .add-item-status { grid-column: 1 / -1; min-height: 16px; margin: 0; color: var(--muted); font-size: 12px; }
+    .shopping-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    @media (max-width: 1000px) {
+      .week-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    }
+    @media (max-width: 620px) {
+      .wrap { width: min(100% - 22px, 520px); padding-top: 25px; }
+      .weekbar { align-items: flex-start; flex-direction: column; }
+      .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .day-card { min-height: 165px; }
+      .bottom-row { align-items: flex-start; flex-direction: column; }
+      .saved { text-align: left; }
+      .panel { padding: 12px; }
+      .add-item-form { grid-template-columns: 1fr 1fr; }
+      .add-item-field:first-child { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="eyebrow">Dinner, planned simply</div>
+      <h1>Weekly Dinner Plan</h1>
+      <p class="subtitle">Choose one recipe for each day of the week.</p>
+    </header>
+
+    <section aria-label="Choose dinners for the week">
+      <div class="weekbar">
+        <h2 class="week-title" id="week-title"></h2>
+        <div class="week-actions">
+          <button class="button arrow" id="previous-week" type="button" aria-label="Previous week">‹</button>
+          <button class="button" id="current-week" type="button">This week</button>
+          <button class="button arrow" id="next-week" type="button" aria-label="Next week">›</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="week-grid" id="week-grid"></div>
+        <div class="bottom-row">
+          <p class="progress" id="progress" aria-live="polite"></p>
+          <button class="button primary" id="make-list" type="button" hidden>Make shopping list</button>
+        </div>
+      </div>
+      <section class="panel shopping-panel" id="shopping-panel" aria-labelledby="shopping-title" hidden>
+        <div class="shopping-heading">
+          <div><h2 id="shopping-title">Shopping list</h2><p id="shopping-week"></p></div>
+        </div>
+        <div class="shopping-controls">
+          <button class="button primary" id="download-shopping-image" type="button">Download image for Sparky</button>
+          <button class="button" id="download-shopping-text" type="button">Download text list</button>
+          <a class="button" href="https://www.walmart.com/cp/sparky/5291783" target="_blank" rel="noopener">Open Walmart Sparky</a>
+        </div>
+        <ul class="shopping-list" id="shopping-list"></ul>
+        <form class="add-item-form" id="add-item-form">
+          <div class="add-item-field">
+            <label for="extra-item-name">Additional item (include size or quantity)</label>
+            <input id="extra-item-name" type="search" maxlength="120" placeholder="e.g. apples, 3 lb bag" required>
+          </div>
+          <div class="add-item-field">
+            <label for="extra-item-price">Walmart price</label>
+            <input id="extra-item-price" type="number" min="0.01" step="0.01" placeholder="$0.00" required>
+          </div>
+          <button class="button" id="search-extra-item" type="button">Search Walmart</button>
+          <button class="button primary" type="submit">Add item</button>
+          <p class="add-item-status" id="add-item-status" aria-live="polite">Search Walmart for the item and price, then add it here.</p>
+        </form>
+        <div class="shopping-total"><span>Estimated total</span><span id="shopping-total"></span></div>
+        <p class="shopping-note">Download the image and upload it to Walmart Sparky to match the list to products for a cart. Review item matches, quantities, prices, and substitutions in Walmart before checkout. Price snapshot checked November 25, 2026. Prices use Walmart listings, including products shown for the Rexburg store serving ZIP 83440; where that store’s listing did not show a price, the app uses a Walmart catalog estimate. Prices and availability can change. Use each Walmart link to confirm before shopping. The estimate assumes you need to buy every listed item.</p>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      // Dated price snapshots use Rexburg listings where available and Walmart
+      // catalog estimates for products without a visible local price.
+      const catalog = {
+        eggs: { name: "Large eggs, 12 count", price: 1.67, size: 12, unit: "eggs", search: "Walmart large eggs 12 count" },
+        milk: { name: "Whole milk, 1 gallon", price: 3.94, size: 16, unit: "cups", search: "Walmart whole milk gallon" },
+        butter: { name: "Butter, 16 oz", price: 2.96, size: 32, unit: "tbsp", search: "Walmart butter 16 oz" },
+        sugar: { name: "Granulated sugar, 10 lb", price: 7.38, size: 22, unit: "cups", search: "Walmart granulated sugar 10 lb" },
+        flour: { name: "All-purpose flour, 5 lb", price: 1.97, size: 18, unit: "cups", search: "Walmart flour 5 lb" },
+        wholeWheatFlour: { name: "Whole-wheat flour, 5 lb", price: 4.98, size: 18, unit: "cups", search: "Walmart whole wheat flour 5 lb" },
+        oil: { name: "Vegetable or canola oil, 48 fl oz", price: 4.48, size: 96, unit: "tbsp", search: "Walmart vegetable oil 48 oz" },
+        oliveOil: { name: "Olive oil, 17 fl oz", price: 6.48, size: 34, unit: "tbsp", search: "Walmart olive oil 17 oz" },
+        bakingSoda: { name: "Baking soda, 1 lb", price: 0.97, size: 140, unit: "tsp", search: "Walmart baking soda 1 lb" },
+        bakingPowder: { name: "Baking powder, 8.1 oz", price: 2.52, size: 48, unit: "tsp", search: "Walmart baking powder 8 oz" },
+        salt: { name: "Salt, 26 oz", price: 0.84, size: 250, unit: "tsp", search: "Walmart table salt 26 oz" },
+        pepper: { name: "Black pepper, 3 oz", price: 2.48, size: 60, unit: "tsp", search: "Walmart black pepper 3 oz" },
+        vanilla: { name: "Vanilla extract, 2 fl oz", price: 4.48, size: 12, unit: "tsp", search: "Walmart vanilla extract 2 oz" },
+        cinnamon: { name: "Ground cinnamon, 2.5 oz", price: 1.98, size: 40, unit: "tsp", search: "Walmart ground cinnamon" },
+        almond: { name: "Almond extract, 2 fl oz", price: 2.98, size: 12, unit: "tsp", search: "Walmart almond extract 2 oz" },
+        zucchini: { name: "Fresh zucchini, each", price: 0.76, size: 1, unit: "each", search: "Walmart fresh zucchini" },
+        chocolate: { name: "Chocolate chips, 10 oz", price: 2.48, size: 2, unit: "cups", search: "Walmart chocolate chips 10 oz" },
+        applesauce: { name: "Applesauce, 23 oz", price: 1.98, size: 3, unit: "cups", search: "Walmart unsweetened applesauce 23 oz" },
+        honey: { name: "Honey, 16 oz", price: 5.97, size: 32, unit: "tbsp", search: "Walmart honey 16 oz" },
+        frenchBread: { name: "French bread loaf, 14 oz", price: 1.47, size: 1, unit: "loaf", search: "Walmart French bread loaf" },
+        creamCheese: { name: "Cream cheese, 2 x 8 oz", price: 2.87, size: 16, unit: "oz", search: "Walmart cream cheese 8 oz" },
+        cream: { name: "Heavy whipping cream, 32 fl oz", price: 4.58, size: 4, unit: "cups", search: "Walmart heavy whipping cream 32 oz" },
+        buttermilk: { name: "Buttermilk, 32 fl oz", price: 2.48, size: 4, unit: "cups", search: "Walmart buttermilk 32 oz" },
+        breakfastSausage: { name: "Breakfast sausage, 16 oz", price: 3.12, size: 1, unit: "lb", search: "Walmart breakfast sausage 16 oz" },
+        italianSausage: { name: "Italian sausage, 16 oz", price: 3.98, size: 1, unit: "lb", search: "Walmart Italian sausage 16 oz" },
+        greenPepper: { name: "Green bell pepper, each", price: 0.75, size: 1, unit: "each", search: "Walmart green bell pepper" },
+        yellowOnion: { name: "Yellow onions, 3 lb bag", price: 2.46, size: 6, unit: "each", search: "Walmart yellow onions 3 lb bag" },
+        redOnion: { name: "Red onion, each", price: 0.83, size: 1, unit: "each", search: "Walmart red onion" },
+        cucumber: { name: "Cucumber, each", price: 0.70, size: 1, unit: "each", search: "Walmart cucumber" },
+        yellowSquash: { name: "Yellow squash, each", price: 0.76, size: 1, unit: "each", search: "Walmart yellow squash" },
+        tomato: { name: "Fresh tomato, each", price: 0.75, size: 1, unit: "each", search: "Walmart fresh tomato" },
+        tomatoes: { name: "Stewed tomatoes, 14.5 oz can", price: 0.96, size: 1, unit: "can", search: "Walmart stewed tomatoes 14.5 oz" },
+        homeTomatoes: { name: "Canned tomatoes, 1 qt", price: 2.48, size: 1, unit: "quart", search: "Walmart canned tomatoes quart" },
+        greenBeans: { name: "Cut green beans, 14.5 oz can", price: 0.50, size: 1, unit: "can", search: "Walmart green beans 14.5 oz" },
+        blackBeans: { name: "Black beans, 15 oz can", price: 0.78, size: 1, unit: "can", search: "Walmart black beans 15 oz" },
+        yellowBeans: { name: "Yellow wax beans, can", price: 0.87, size: 1, unit: "can", search: "Walmart yellow wax beans canned" },
+        beefBroth: { name: "Beef broth, 14 oz can", price: 1.18, size: 1, unit: "can", search: "Walmart beef broth can" },
+        cheddar: { name: "Shredded cheddar, 8 oz", price: 1.97, size: 8, unit: "oz", search: "Walmart shredded cheddar 8 oz" },
+        montereyJack: { name: "Monterey Jack cheese, 8 oz", price: 1.97, size: 8, unit: "oz", search: "Walmart Monterey Jack cheese 8 oz" },
+        mozzarella: { name: "Shredded mozzarella, 8 oz", price: 1.97, size: 8, unit: "oz", search: "Walmart shredded mozzarella 8 oz" },
+        ricotta: { name: "Ricotta cheese, 15 oz", price: 2.67, size: 15, unit: "oz", search: "Walmart ricotta 15 oz" },
+        parmesan: { name: "Parmesan, 5 oz", price: 3.28, size: 5, unit: "oz", search: "Walmart Parmesan cheese 5 oz" },
+        taterTots: { name: "Tater tots, 32 oz", price: 2.97, size: 32, unit: "oz", search: "Walmart tater tots 32 oz" },
+        sourCream: { name: "Sour cream, 16 oz", price: 1.98, size: 16, unit: "oz", search: "Walmart sour cream 16 oz" },
+        tortilla: { name: "6-inch tortillas, 16 count", price: 2.24, size: 16, unit: "tortillas", search: "Walmart 6 inch tortillas 16 count" },
+        pork: { name: "Boneless pork shoulder, approx. 3 lb", price: 14.94, size: 3, unit: "lb", search: "Walmart boneless pork shoulder 3 lb" },
+        carnitasSeasoning: { name: "Carnitas seasoning packet", price: 1.48, size: 1, unit: "packet", search: "Walmart pork carnitas seasoning packet" },
+        chicken: { name: "Boneless chicken, 2 lb", price: 7.94, size: 2, unit: "lb", search: "Walmart boneless chicken breast 2 lb" },
+        soySauce: { name: "Soy sauce, 15 fl oz", price: 1.68, size: 30, unit: "tbsp", search: "Walmart soy sauce 15 oz" },
+        fishSauce: { name: "Fish sauce, 7 fl oz", price: 3.98, size: 14, unit: "tbsp", search: "Walmart fish sauce 7 oz" },
+        lime: { name: "Lime, each", price: 0.38, size: 2, unit: "tbsp juice", search: "Walmart fresh lime" },
+        thaiChili: { name: "Thai chili pepper, spice jar", price: 2.98, size: 40, unit: "tsp", search: "Walmart ground Thai chili pepper" },
+        garlicPowder: { name: "Garlic powder, 3 oz", price: 2.24, size: 40, unit: "tsp", search: "Walmart garlic powder 3 oz" },
+        ginger: { name: "Ground ginger, 1.5 oz", price: 2.24, size: 20, unit: "tsp", search: "Walmart ground ginger 1.5 oz" },
+        flatbread: { name: "Prepared flatbreads, 2 count", price: 4.98, size: 2, unit: "flatbreads", search: "Walmart prepared flatbread 2 count" },
+        spicyItalian: { name: "Spicy Italian seasoning", price: 2.98, size: 20, unit: "tbsp", search: "Walmart spicy Italian seasoning" },
+        pancakeMix: { name: "Buttermilk pancake mix, 32 oz", price: 2.08, size: 8, unit: "cups", search: "Walmart buttermilk pancake mix 32 oz" },
+        mapleExtract: { name: "Maple extract, 2 fl oz", price: 3.48, size: 12, unit: "tsp", search: "Walmart maple extract 2 oz" },
+        crackers: { name: "Soda crackers, 16 oz", price: 2.48, size: 1, unit: "sleeve", search: "Walmart soda crackers 16 oz" },
+        pasta: { name: "Pasta, 16 oz", price: 1.18, size: 16, unit: "oz", search: "Walmart pasta 16 oz" },
+        cilantro: { name: "Fresh cilantro, bunch", price: 0.98, size: 2, unit: "cups chopped", search: "Walmart fresh cilantro bunch" },
+        basil: { name: "Fresh basil, package", price: 2.48, size: 12, unit: "tbsp chopped", search: "Walmart fresh basil package" },
+        parsley: { name: "Fresh parsley, bunch", price: 0.98, size: 12, unit: "tbsp chopped", search: "Walmart fresh parsley bunch" },
+        jalapeno: { name: "Jalapeño, each", price: 0.18, size: 1, unit: "each", search: "Walmart jalapeno pepper" },
+        avocado: { name: "Avocado, each", price: 0.87, size: 1, unit: "each", search: "Walmart avocado" },
+        garlic: { name: "Garlic bulb", price: 0.68, size: 10, unit: "cloves", search: "Walmart garlic bulb" },
+        vinegar: { name: "Apple cider vinegar, 32 fl oz", price: 2.48, size: 64, unit: "tbsp", search: "Walmart apple cider vinegar 32 oz" },
+        peanutOil: { name: "Peanut oil, 24 fl oz", price: 5.98, size: 48, unit: "tbsp", search: "Walmart peanut oil 24 oz" },
+        greenOnion: { name: "Green onions, bunch", price: 1.13, size: 1, unit: "bunch", search: "Walmart green onions bunch" },
+        redWine: { name: "Red wine, small bottle", price: 5.98, size: 1, unit: "bottle", search: "Walmart red wine cooking" }
+      };
+
+      // Ingredient quantity values use the unit listed in each catalog entry.
+      const recipes = [
+        { name: "Dad's Bean Salad", ingredients: [["vinegar", 8, "1/2 cup cider vinegar"], ["peanutOil", 4, "1/4 cup peanut oil"], ["sugar", 0.75, "3/4 cup sugar"], ["greenBeans", 1, "1 can green beans"], ["blackBeans", 1, "1 can black beans"], ["yellowBeans", 1, "1 can yellow wax beans"], ["greenPepper", 1, "1/2 cup chopped green pepper"], ["redOnion", 0.5, "1/2 cup chopped red onion"]], directions: "Mix the vinegar, oil, and sugar for the dressing. Drain the beans, combine with chopped pepper and onion, toss with dressing, and chill." },
+        { name: "French Toast Bake", ingredients: [["frenchBread", 1, "1 loaf French bread"], ["creamCheese", 8, "8 oz cream cheese"], ["eggs", 6, "6 eggs"], ["milk", 2, "2 cups cream or milk"], ["sugar", 1.25, "1/2 cup sugar, plus 3/4 cup for syrup"], ["vanilla", 2, "1 tsp vanilla in bake and 1 tsp in syrup"], ["almond", 0.5, "1/2 tsp almond extract"], ["cinnamon", 0.5, "Cinnamon to sprinkle"], ["butter", 8, "1/2 cup butter"], ["buttermilk", 0.5, "1/2 cup buttermilk"], ["bakingSoda", 0.5, "1/2 tsp baking soda for syrup"]], directions: "Layer cubed French bread with cream cheese. Pour over the egg, milk, sugar, and flavoring mixture. Cover and chill overnight; bake at 350°F for 30 minutes covered, then 15 minutes uncovered. Make the syrup by boiling butter, sugar, and buttermilk, then stirring in baking soda and vanilla." },
+        { name: "German Pancakes", ingredients: [["eggs", 12, "12 eggs"], ["milk", 2, "2 cups milk"], ["flour", 2, "2 cups flour"], ["salt", 0.1, "Dash of salt"], ["vanilla", 2, "2 tsp vanilla"], ["butter", 10, "10 tbsp butter"]], directions: "Heat the oven to 425°F and melt the butter in a 9×13-inch metal baking dish. Blend eggs, milk, flour, salt, and vanilla until smooth; pour over butter and bake 22–27 minutes until puffed and golden." },
+        { name: "Grandpa John's Buttermilk Pancakes", ingredients: [["eggs", 2, "2 eggs"], ["oil", 4, "1/4 cup vegetable oil"], ["pancakeMix", 2, "2 cups buttermilk pancake mix"], ["buttermilk", 0.5, "Start with 1/2 cup buttermilk"], ["sugar", 2, "2 cups sugar for syrup"], ["mapleExtract", 1, "Mapleine extract for syrup"]], directions: "Mix the eggs and oil with pancake mix and buttermilk, adding more buttermilk if needed. Let the batter sit until bubbles appear, then cook on a hot, oiled griddle. The handwritten notes say to make maple syrup with two parts sugar to one part water and mapleine extract." },
+        { name: "Grandpa John's Squash Casserole", ingredients: [["zucchini", 2, "Zucchini (about 2 parts)"], ["yellowSquash", 2, "Yellow crookneck squash (about 2 parts)"], ["tomato", 1, "Tomatoes (about 1 part)"], ["crackers", 1, "At least 1 sleeve soda crackers"], ["eggs", 3, "3 eggs"], ["buttermilk", 1, "Buttermilk, as needed"], ["oil", 4, "Oil for frying"], ["garlicPowder", 1, "Garlic powder"], ["salt", 0.5, "Salt"], ["pepper", 0.25, "Black pepper"], ["cheddar", 8, "Cheddar cheese between layers"]], directions: "Slice the zucchini, yellow squash, and tomatoes. Dip slices in beaten egg mixed with buttermilk, coat in cracker crumbs, and fry until lightly brown. Season with garlic powder, salt, and pepper, layer in a greased casserole with cheddar, pour remaining egg mixture over, and bake at 300°F for about an hour." },
+        { name: "Jessie's Creamy Cucumbers", ingredients: [["cucumber", 3, "2–3 cucumbers"], ["cream", 1, "Heavy cream"], ["sugar", 0.25, "Sugar, to taste"], ["vinegar", 1, "Vinegar, to taste"]], directions: "Peel and slice the cucumbers into a cream mixture seasoned to taste with sugar and vinegar." },
+        { name: "John's Italian Soup", ingredients: [["italianSausage", 1.5, "1 1/2 lb sweet Italian sausage"], ["yellowOnion", 2, "2 large onions"], ["garlic", 2, "2 cloves garlic"], ["tomatoes", 3, "3 cans stewed tomatoes, 14 oz each"], ["beefBroth", 2, "2 cans beef broth"], ["greenPepper", 1, "1 green bell pepper"], ["zucchini", 2, "2 zucchini"], ["yellowSquash", 2, "2 yellow squash"], ["basil", 3, "3 tbsp fresh basil"], ["parsley", 3, "3 tbsp fresh parsley"], ["pasta", 8, "8 oz uncooked pasta"]], directions: "Brown sausage with onions and garlic. Add tomatoes, broth, optional red wine, and bell pepper; simmer 30 minutes. Cook pasta separately, add zucchini and squash to soup for the last 10–15 minutes, then stir in herbs and serve." },
+        { name: "John's Salsa Especiale", ingredients: [["homeTomatoes", 1, "1 quart tomatoes"], ["redOnion", 0.5, "1/2 cup diced red onion"], ["greenPepper", 1, "1/2 cup chopped green pepper"], ["cilantro", 0.5, "1/2 cup chopped cilantro"], ["jalapeno", 2, "1–2 jalapeños"], ["salt", 0.25, "1/4 tsp salt"], ["lime", 0.5, "1–2 tsp lime juice"]], directions: "Pulse tomatoes in a blender until chopped. Add the remaining ingredients and pulse briefly to combine. Stir in cubed avocado if desired." },
+        { name: "Make-Ahead Overnight Tater Tot Breakfast Casserole", ingredients: [["breakfastSausage", 1, "12–16 oz breakfast sausage"], ["greenPepper", 1, "1 cup diced bell pepper"], ["yellowOnion", 0.5, "1/2 cup diced onion"], ["eggs", 6, "6 eggs"], ["milk", 1, "1 cup milk"], ["sourCream", 4, "1/2 cup sour cream"], ["salt", 0.5, "1/2 tsp salt"], ["pepper", 0.1, "Pinch of black pepper"], ["taterTots", 24, "24 oz frozen tater tots"], ["cheddar", 4, "1 cup grated cheddar"], ["montereyJack", 4, "1 cup grated Monterey Jack"]], directions: "Cook sausage with peppers and onion. Whisk eggs, milk, sour cream, salt, and pepper. Layer tater tots, sausage mixture, and cheese in a 9×13-inch pan; pour egg mixture over, cover, and refrigerate overnight. Bake covered at 350°F for 25 minutes, then uncovered for 20–25 minutes." },
+        { name: "Pork Carnitas Street Tacos", ingredients: [["pork", 3, "3 lb boneless pork shoulder"], ["carnitasSeasoning", 1, "1 packet pork carnitas seasoning"], ["tortilla", 16, "16 small tortillas"]], directions: "Slow-cook the seasoned pork until tender, shred it, and serve in warm tortillas with any toppings you like." },
+        { name: "Pancakes", ingredients: [["flour", 2, "2 cups flour"], ["bakingPowder", 2, "2 tsp baking powder"], ["bakingSoda", 0.5, "1/2 tsp baking soda"], ["salt", 0.5, "1/2 tsp salt"], ["eggs", 2, "2 eggs"], ["applesauce", 0.5, "1/2 cup unsweetened applesauce"], ["milk", 1.25, "1 1/4 cups milk"], ["honey", 2, "2 tbsp honey"], ["vanilla", 1, "1 tsp vanilla"], ["butter", 2, "2 tbsp melted butter"]], directions: "Whisk the dry ingredients. Whisk eggs, applesauce, milk, honey, vanilla, and melted butter together, then stir into the dry mix until just combined. Cook on a hot griddle." },
+        { name: "Spicy Italian Cheesy Flatbread", ingredients: [["flatbread", 2, "2 prepared flatbreads"], ["oliveOil", 2, "2 tbsp light olive oil"], ["ricotta", 6, "3/4 cup ricotta"], ["mozzarella", 4, "1 cup shredded mozzarella"], ["parmesan", 1.5, "3 tbsp Parmesan"], ["spicyItalian", 1, "1 tbsp spicy Italian seasoning"]], directions: "Heat the oven to 400°F. Brush flatbreads with olive oil, spread with ricotta, then add mozzarella, Parmesan, and seasoning. Bake about 15 minutes." },
+        { name: "Thai Chili Chicken Marinade", ingredients: [["chicken", 1.5, "1 1/2 lb boneless chicken"], ["soySauce", 2, "2 tbsp soy sauce"], ["fishSauce", 1, "1 tbsp fish sauce"], ["lime", 0.5, "1 tbsp lime juice"], ["honey", 1, "1 tbsp honey"], ["thaiChili", 1, "1 tsp Thai chili pepper"], ["garlicPowder", 1, "1 tsp garlic powder"], ["ginger", 1, "1 tsp ground ginger"], ["oil", 2, "2 tbsp canola oil"]], directions: "Mix the marinade and coat the chicken. Marinate for at least 30 minutes, then grill 6–8 minutes per side until the thickest part reaches 165°F." },
+        { name: "Zucchini Bread", ingredients: [["sugar", 0.75, "3/4 cup sugar"], ["eggs", 2, "2 eggs"], ["oil", 5.33, "1/3 cup oil"], ["vanilla", 1, "1 tsp vanilla"], ["wholeWheatFlour", 1.25, "1 1/4 cups whole-wheat flour"], ["cinnamon", 0.5, "1/2 tsp cinnamon"], ["bakingSoda", 0.75, "3/4 tsp baking soda"], ["bakingPowder", 0.75, "3/4 tsp baking powder"], ["salt", 0.5, "1/2 tsp salt"], ["zucchini", 1, "2 cups shredded zucchini (about 1 medium zucchini)"], ["chocolate", 0.5, "1/2 cup chocolate chips"]], directions: "The handwritten page shows the ingredient list for zucchini bread; it does not include baking directions." }
+      ];
+
+      const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      const storageKey = "simple-dinner-plan-v1";
+      const grid = document.getElementById("week-grid");
+      const weekTitle = document.getElementById("week-title");
+      const progress = document.getElementById("progress");
+      const makeListButton = document.getElementById("make-list");
+      const shoppingPanel = document.getElementById("shopping-panel");
+      let weekStart = startOfWeek(new Date());
+      let selections = readSelections();
+      let currentShoppingItems = [];
+      let shoppingEdits = readShoppingEdits();
+
+      function startOfWeek(date) {
+        const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        result.setDate(result.getDate() - ((result.getDay() + 6) % 7));
+        return result;
+      }
+      function dateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      }
+      function weekKey() { return dateKey(weekStart); }
+      function readSelections() {
+        try { const data = JSON.parse(localStorage.getItem(storageKey) || "{}"); return data && typeof data === "object" ? data : {}; }
+        catch { return {}; }
+      }
+      function readShoppingEdits() {
+        try { const data = JSON.parse(localStorage.getItem("dinner-shopping-edits-v1") || "{}"); return data && typeof data === "object" ? data : {}; }
+        catch { return {}; }
+      }
+      function editsForWeek() {
+        if (!shoppingEdits[weekKey()]) shoppingEdits[weekKey()] = { removed: [], additions: [] };
+        return shoppingEdits[weekKey()];
+      }
+      function saveShoppingEdits() { localStorage.setItem("dinner-shopping-edits-v1", JSON.stringify(shoppingEdits)); }
+      function saveSelections() { localStorage.setItem(storageKey, JSON.stringify(selections)); }
+      function formatDate(date, options) { return new Intl.DateTimeFormat(undefined, options).format(date); }
+      function updateWeekTitle() {
+        const sunday = new Date(weekStart); sunday.setDate(sunday.getDate() + 6);
+        const sameMonth = weekStart.getMonth() === sunday.getMonth();
+        const startText = formatDate(weekStart, { month: "long", day: "numeric" });
+        const endText = formatDate(sunday, { ...(sameMonth ? {} : { month: "long" }), day: "numeric", year: "numeric" });
+        weekTitle.textContent = `${startText} – ${endText}`;
+      }
+      function showRecipe(recipe, container) {
+        container.replaceChildren();
+        if (!recipe) { container.hidden = true; return; }
+        const heading = document.createElement("strong"); heading.textContent = recipe.name;
+        const list = document.createElement("ul");
+        recipe.ingredients.forEach(([, , text]) => { const li = document.createElement("li"); li.textContent = text; list.append(li); });
+        const directions = document.createElement("div"); directions.className = "directions"; directions.textContent = recipe.directions;
+        container.append(heading, list, directions); container.hidden = false;
+      }
+      function renderWeek() {
+        updateWeekTitle(); grid.replaceChildren();
+        const currentSelections = selections[weekKey()] || {};
+        days.forEach((day, index) => {
+          const date = new Date(weekStart); date.setDate(date.getDate() + index);
+          const card = document.createElement("article"); card.className = "day-card";
+          const dayName = document.createElement("span"); dayName.className = "day-name"; dayName.textContent = day;
+          const dayDate = document.createElement("span"); dayDate.className = "day-date"; dayDate.textContent = formatDate(date, { month: "short", day: "numeric" });
+          const label = document.createElement("label"); label.htmlFor = `dinner-${index}`; label.textContent = "Dinner";
+          const select = document.createElement("select"); select.id = `dinner-${index}`; select.setAttribute("aria-label", `${day} dinner`);
+          const placeholder = document.createElement("option"); placeholder.value = ""; placeholder.textContent = "Choose a recipe"; select.append(placeholder);
+          recipes.forEach((recipe) => { const option = document.createElement("option"); option.value = recipe.name; option.textContent = recipe.name; select.append(option); });
+          const picked = document.createElement("div"); picked.className = "picked";
+          select.value = currentSelections[day] || "";
+          showRecipe(recipes.find((recipe) => recipe.name === select.value), picked);
+          select.addEventListener("change", () => {
+            const plan = selections[weekKey()] || {};
+            if (select.value) plan[day] = select.value; else delete plan[day];
+            selections[weekKey()] = plan; saveSelections();
+            showRecipe(recipes.find((recipe) => recipe.name === select.value), picked);
+            shoppingPanel.hidden = true; updateProgress();
+          });
+          card.append(dayName, dayDate, label, select, picked); grid.append(card);
+        });
+        shoppingPanel.hidden = true; updateProgress();
+      }
+      function updateProgress() {
+        const count = days.filter((day) => Boolean((selections[weekKey()] || {})[day])).length;
+        progress.innerHTML = `<strong>${count} of 7</strong> dinners planned`;
+        makeListButton.hidden = count !== 7;
+      }
+      function renderShoppingList() {
+        const chosen = selections[weekKey()] || {};
+        const combined = new Map();
+        days.forEach((day) => {
+          const recipe = recipes.find((item) => item.name === chosen[day]);
+          if (!recipe) return;
+          recipe.ingredients.forEach(([key, quantity, amount]) => {
+            if (!combined.has(key)) combined.set(key, { quantity: 0, amounts: [], uses: [] });
+            const entry = combined.get(key); entry.quantity += quantity; entry.amounts.push(amount); entry.uses.push(`${day}: ${recipe.name}`);
+          });
+        });
+        const edits = editsForWeek();
+        currentShoppingItems = [...combined.entries()]
+          .sort((a, b) => catalog[a[0]].name.localeCompare(catalog[b[0]].name))
+          .filter(([key]) => !edits.removed.includes(key))
+          .map(([key, entry]) => {
+            const product = catalog[key];
+            const packages = Math.max(1, Math.ceil(entry.quantity / product.size));
+            return { id: key, product, entry, packages, lineTotal: packages * product.price, custom: false };
+          });
+        edits.additions.forEach((addition) => currentShoppingItems.push({
+          id: addition.id,
+          product: { name: addition.name, price: addition.price, search: addition.name },
+          entry: { amounts: [addition.quantity || "1 item"], uses: ["Added by you"] },
+          packages: 1,
+          lineTotal: addition.price,
+          custom: true
+        }));
+        document.getElementById("shopping-week").textContent = weekTitle.textContent;
+        renderShoppingItems();
+        shoppingPanel.hidden = false;
+        shoppingPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      function renderShoppingItems() {
+        const list = document.getElementById("shopping-list"); list.replaceChildren();
+        currentShoppingItems.forEach(({ id, product, entry, packages, lineTotal }) => {
+          const row = document.createElement("li"); row.className = "shopping-item";
+          const title = document.createElement("div"); title.className = "shopping-item-title";
+          const name = document.createElement("div"); name.className = "shopping-item-name"; name.textContent = product.name;
+          const remove = document.createElement("button"); remove.className = "delete-item"; remove.type = "button"; remove.textContent = "Delete"; remove.setAttribute("aria-label", `Remove ${product.name} from the shopping list`);
+          remove.addEventListener("click", () => removeShoppingItem(id));
+          title.append(name, remove);
+          const amount = document.createElement("div"); amount.className = "shopping-item-amount"; amount.textContent = `Recipe amounts: ${entry.amounts.join("; ")}`;
+          const use = document.createElement("div"); use.className = "shopping-item-use"; use.textContent = `For ${entry.uses.join(" · ")}`;
+          const price = document.createElement("div"); price.className = "shopping-item-price"; price.textContent = `$${lineTotal.toFixed(2)}`;
+          const perPack = document.createElement("small"); perPack.textContent = `${packages} × $${product.price.toFixed(2)} · `;
+          const link = document.createElement("a"); link.href = `https://www.walmart.com/search?q=${encodeURIComponent(product.search)}`; link.target = "_blank"; link.rel = "noopener"; link.textContent = "Walmart";
+          perPack.append(link); price.append(perPack); row.append(title, amount, use, price); list.append(row);
+        });
+        const total = currentShoppingItems.reduce((sum, item) => sum + item.lineTotal, 0);
+        document.getElementById("shopping-total").textContent = `$${total.toFixed(2)}`;
+      }
+      function removeShoppingItem(id) {
+        const edits = editsForWeek();
+        const item = currentShoppingItems.find((entry) => entry.id === id);
+        if (item?.custom) edits.additions = edits.additions.filter((entry) => entry.id !== id);
+        else if (!edits.removed.includes(id)) edits.removed.push(id);
+        saveShoppingEdits();
+        currentShoppingItems = currentShoppingItems.filter((entry) => entry.id !== id);
+        renderShoppingItems();
+      }
+      function addCustomShoppingItem(event) {
+        event.preventDefault();
+        const nameInput = document.getElementById("extra-item-name");
+        const priceInput = document.getElementById("extra-item-price");
+        const name = nameInput.value.trim();
+        const price = Number(priceInput.value);
+        if (!name || !Number.isFinite(price) || price <= 0) return;
+        const id = `custom-${Date.now()}-${Math.random().toString(16).slice(2, 7)}`;
+        const addition = { id, name, price, quantity: "1 item" };
+        editsForWeek().additions.push(addition); saveShoppingEdits();
+        currentShoppingItems.push({
+          id, product: { name, price, search: name },
+          entry: { amounts: [addition.quantity], uses: ["Added by you"] },
+          packages: 1, lineTotal: price, custom: true
+        });
+        renderShoppingItems();
+        nameInput.value = ""; priceInput.value = "";
+        document.getElementById("add-item-status").textContent = `Added “${name}” to the list.`;
+      }
+      function searchCustomItem() {
+        const query = document.getElementById("extra-item-name").value.trim();
+        if (!query) { document.getElementById("extra-item-name").focus(); return; }
+        window.open(`https://www.walmart.com/search?q=${encodeURIComponent(query)}`, "_blank", "noopener,noreferrer");
+        document.getElementById("add-item-status").textContent = "Find the matching item and price on Walmart, then enter the price and add it.";
+      }
+      function downloadFile(filename, blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a"); link.href = url; link.download = filename;
+        document.body.append(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+      }
+      function downloadTextList() {
+        if (!currentShoppingItems.length) return;
+        const lines = ["Walmart shopping list", "ZIP code: 83440", `Week: ${weekTitle.textContent}`, ""];
+        currentShoppingItems.forEach(({ product, entry, packages, lineTotal }) => {
+          lines.push(`- ${packages} x ${product.name} — $${lineTotal.toFixed(2)}`);
+          lines.push(`  Recipe amounts: ${entry.amounts.join("; ")}`);
+        });
+        const total = currentShoppingItems.reduce((sum, item) => sum + item.lineTotal, 0);
+        lines.push("", `Estimated total: $${total.toFixed(2)}`, "Prices are estimates; confirm current prices and availability with Walmart.");
+        downloadFile(`walmart-shopping-list-${weekKey()}.txt`, new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }));
+      }
+      function downloadShoppingImage() {
+        if (!currentShoppingItems.length) return;
+        const canvas = document.createElement("canvas");
+        const width = 1400, rowHeight = 70, top = 210, bottom = 145;
+        canvas.width = width; canvas.height = top + currentShoppingItems.length * rowHeight + bottom;
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff"; context.fillRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#1d3048"; context.font = "bold 48px Arial";
+        context.fillText("Walmart Shopping List", 64, 82);
+        context.fillStyle = "#52677f"; context.font = "28px Arial";
+        context.fillText(`ZIP 83440  ·  Week of ${formatDate(weekStart, { month: "long", day: "numeric", year: "numeric" })}`, 64, 132);
+        context.fillText("Review the matched products and quantities in Walmart before checkout.", 64, 174);
+        currentShoppingItems.forEach(({ product, packages }, index) => {
+          const y = top + index * rowHeight;
+          context.strokeStyle = "#d5e1f0"; context.lineWidth = 2;
+          context.beginPath(); context.moveTo(64, y + 35); context.lineTo(width - 64, y + 35); context.stroke();
+          context.strokeStyle = "#285f9e"; context.lineWidth = 3;
+          context.strokeRect(67, y + 4, 28, 28);
+          context.fillStyle = "#1d3048"; context.font = "30px Arial";
+          context.fillText(`${packages} × ${product.name}`, 116, y + 29);
+        });
+        const total = currentShoppingItems.reduce((sum, item) => sum + item.lineTotal, 0);
+        context.fillStyle = "#1d3048"; context.font = "bold 32px Arial";
+        context.fillText(`Estimated total: $${total.toFixed(2)}`, 64, canvas.height - 68);
+        context.fillStyle = "#52677f"; context.font = "22px Arial";
+        context.fillText("Price estimates checked November 25, 2026", 64, canvas.height - 30);
+        canvas.toBlob((blob) => {
+          if (blob) downloadFile(`walmart-shopping-list-${weekKey()}.png`, blob);
+        }, "image/png");
+      }
+      function moveWeek(amount) { weekStart.setDate(weekStart.getDate() + amount * 7); renderWeek(); }
+      document.getElementById("previous-week").addEventListener("click", () => moveWeek(-1));
+      document.getElementById("next-week").addEventListener("click", () => moveWeek(1));
+      document.getElementById("current-week").addEventListener("click", () => { weekStart = startOfWeek(new Date()); renderWeek(); });
+      makeListButton.addEventListener("click", renderShoppingList);
+      document.getElementById("download-shopping-image").addEventListener("click", downloadShoppingImage);
+      document.getElementById("download-shopping-text").addEventListener("click", downloadTextList);
+      document.getElementById("add-item-form").addEventListener("submit", addCustomShoppingItem);
+      document.getElementById("search-extra-item").addEventListener("click", searchCustomItem);
+      renderWeek();
+    })();
+  </script>
+</body>
+</html>
